@@ -6,7 +6,7 @@ import (
 	dnspod "github.com/libdns/dnspod"
 )
 
-// Provider wraps the provider implementation as a Caddy module.
+// Provider wraps the libdns dnspod provider for use in Caddy.
 type Provider struct{ *dnspod.Provider }
 
 func init() {
@@ -21,10 +21,10 @@ func (Provider) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-// Provision resolves placeholders in the API token before use.
-// Implements caddy.Provisioner.
+// Provision implements caddy.Provisioner.
+// It resolves placeholders in the API token before use.
 func (p *Provider) Provision(ctx caddy.Context) error {
-	repl := ctx.Replacer() // 新版本推荐用 ctx.Replacer()
+	repl := caddy.NewReplacer()
 	p.Provider.APIToken = repl.ReplaceAll(p.Provider.APIToken, "")
 	return nil
 }
@@ -38,34 +38,24 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 //
 func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
-		// 可选的第一个参数
 		if d.NextArg() {
 			p.Provider.APIToken = d.Val()
 		}
 		if d.NextArg() {
-			return d.ArgErr() // 位置参数超过1个
+			return d.ArgErr()
 		}
-
-		// 处理子块
 		for nesting := d.Nesting(); d.NextBlock(nesting); {
 			switch d.Val() {
 			case "api_token":
-				if p.Provider.APIToken != "" {
-					return d.Err("API token already set")
-				}
 				if !d.NextArg() {
 					return d.ArgErr()
 				}
 				p.Provider.APIToken = d.Val()
-				if d.NextArg() {
-					return d.ArgErr()
-				}
 			default:
 				return d.Errf("unrecognized subdirective '%s'", d.Val())
 			}
 		}
 	}
-
 	if p.Provider.APIToken == "" {
 		return d.Err("missing API token")
 	}
