@@ -1,9 +1,8 @@
-module github.com/caddy-dns/dnspod
+module github.com/chenkongshan/dnspod
 
-go 1.14
+go 1.21
 
 require (
-	github.com/caddyserver/caddy/v2 v2.3.0
-	github.com/libdns/dnspod v0.0.3
-	github.com/libdns/libdns v0.2.1 // indirect
+	github.com/caddyserver/caddy/v2 v2.10.0
+	github.com/libdns/dnspod v0.2.1
 )

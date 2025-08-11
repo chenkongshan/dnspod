@@ -21,15 +21,16 @@ func (Provider) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-// Before using the provider config, resolve placeholders in the API token.
+// Provision resolves placeholders in the API token before use.
 // Implements caddy.Provisioner.
 func (p *Provider) Provision(ctx caddy.Context) error {
-	repl := caddy.NewReplacer()
+	repl := ctx.Replacer() // 新版本推荐用 ctx.Replacer()
 	p.Provider.APIToken = repl.ReplaceAll(p.Provider.APIToken, "")
 	return nil
 }
 
-// UnmarshalCaddyfile sets up the DNS provider from Caddyfile tokens. Syntax:
+// UnmarshalCaddyfile sets up the DNS provider from Caddyfile tokens.
+// Syntax:
 //
 // dnspod [<api_token>] {
 //     api_token <api_token>
@@ -37,17 +38,23 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 //
 func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
+		// 可选的第一个参数
 		if d.NextArg() {
 			p.Provider.APIToken = d.Val()
 		}
 		if d.NextArg() {
-			return d.ArgErr()
+			return d.ArgErr() // 位置参数超过1个
 		}
+
+		// 处理子块
 		for nesting := d.Nesting(); d.NextBlock(nesting); {
 			switch d.Val() {
 			case "api_token":
 				if p.Provider.APIToken != "" {
 					return d.Err("API token already set")
+				}
+				if !d.NextArg() {
+					return d.ArgErr()
 				}
 				p.Provider.APIToken = d.Val()
 				if d.NextArg() {
@@ -58,6 +65,7 @@ func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			}
 		}
 	}
+
 	if p.Provider.APIToken == "" {
 		return d.Err("missing API token")
 	}
